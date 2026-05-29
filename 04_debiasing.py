@@ -94,3 +94,35 @@ labels_df    = pd.read_csv(os.path.join(RESULTS_DIR, "anomaly_labels.csv"))
 
 race_groups   = demographics["race"].values
 gender_groups = demographics["gender"].values
+detectors     = scores_df.columns.tolist()
+
+# ── Apply FairnessWrapper (race axis) ─────────────────────────────────────────
+print("\nApplying FairnessWrapper (zscore strategy) on race axis...")
+wrapper = FairnessWrapper(contamination=CONTAMINATION, strategy="zscore")
+
+debiased_scores = {}
+debiased_labels = {}
+
+for det in detectors:
+    raw_scores = scores_df[det].values
+    db_scores  = wrapper.fit_transform(raw_scores, race_groups)
+    db_labels  = wrapper.predict(db_scores)
+    # re-normalize debiased scores to [0,1] for comparability
+    mn, mx = db_scores.min(), db_scores.max()
+    debiased_scores[det] = (db_scores - mn) / (mx - mn + 1e-9)
+    debiased_labels[det] = db_labels
+    print(f"  {det}: {labels_df[det].sum()} → {db_labels.sum()} anomalies flagged")
+
+debiased_scores_df = pd.DataFrame(debiased_scores)
+debiased_labels_df = pd.DataFrame(debiased_labels)
+debiased_scores_df.to_csv(os.path.join(RESULTS_DIR, "debiased_scores.csv"), index=False)
+debiased_labels_df.to_csv(os.path.join(RESULTS_DIR, "debiased_labels.csv"), index=False)
+
+# ── Compare fairness before vs after ─────────────────────────────────────────
+print("\n── Fairness Comparison: Before vs After Debiasing ──")
+race_values = ["Caucasian", "AfricanAmerican", "Hispanic", "Asian", "Other"]
+
+comparison = []
+for det in detectors:
+    for label_df, tag in [(labels_df, "before"), (debiased_labels_df, "after")]:
+        rates = {}
