@@ -67,3 +67,26 @@ print(f"  Done in {time.time()-t:.1f}s  |  Anomalies flagged: {labels['LOF'].sum
 print("\n[3/4] One-Class SVM (subsampled for speed)...")
 t = time.time()
 # OCSVM is O(n^2); subsample for training, score all
+np.random.seed(RANDOM_STATE)
+n_train = min(10000, len(X))
+idx_train = np.random.choice(len(X), n_train, replace=False)
+clf_ocsvm = OneClassSVM(kernel="rbf", nu=CONTAMINATION, gamma="scale")
+clf_ocsvm.fit(X[idx_train])
+# decision_function: negative = anomaly; negate for consistency
+raw_ocsvm = -clf_ocsvm.decision_function(X)
+scores["OCSVM"] = raw_ocsvm
+threshold_ocsvm = np.percentile(raw_ocsvm, 100 * (1 - CONTAMINATION))
+labels["OCSVM"] = (raw_ocsvm >= threshold_ocsvm).astype(int)
+print(f"  Done in {time.time()-t:.1f}s  |  Anomalies flagged: {labels['OCSVM'].sum()}")
+
+# ── 4. DBSCAN ────────────────────────────────────────────────────────────────
+print("\n[4/4] DBSCAN...")
+t = time.time()
+# Use k-NN distance as the anomaly score (distance to 5th nearest neighbor)
+# Points in dense regions get low scores; isolated points get high scores
+knn = NearestNeighbors(n_neighbors=5, n_jobs=-1)
+knn.fit(X)
+knn_distances, _ = knn.kneighbors(X)
+scores["DBSCAN"] = knn_distances[:, -1]   # distance to 5th neighbor
+
+# DBSCAN labels: -1 = noise (anomaly)
