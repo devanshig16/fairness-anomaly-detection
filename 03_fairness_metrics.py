@@ -114,3 +114,31 @@ def compute_fairness(group_col, group_values, detectors, demographics, scores_df
 # ── Race analysis ─────────────────────────────────────────────────────────────
 print("\n── Race Fairness Analysis ──")
 race_groups = ["Caucasian", "AfricanAmerican", "Hispanic", "Asian", "Other"]
+race_metrics, race_rates = compute_fairness(
+    "race", race_groups, detectors, demographics, scores_df, labels_df
+)
+print(race_metrics.to_string(index=False))
+race_metrics.to_csv(os.path.join(RESULTS_DIR, "fairness_metrics_race.csv"), index=False)
+race_rates.to_csv(os.path.join(RESULTS_DIR, "group_anomaly_rates_race.csv"), index=False)
+
+# ── Gender analysis ───────────────────────────────────────────────────────────
+print("\n── Gender Fairness Analysis ──")
+gender_groups = ["Female", "Male"]
+gender_metrics, gender_rates = compute_fairness(
+    "gender", gender_groups, detectors, demographics, scores_df, labels_df
+)
+print(gender_metrics.to_string(index=False))
+gender_metrics.to_csv(os.path.join(RESULTS_DIR, "fairness_metrics_gender.csv"), index=False)
+gender_rates.to_csv(os.path.join(RESULTS_DIR, "group_anomaly_rates_gender.csv"), index=False)
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+print("\n── Key Findings ──")
+print("Race — highest SPD (worst fairness):")
+print(race_metrics.sort_values("SPD", ascending=False)[["detector","SPD","DIR","highest_rate_group","lowest_rate_group"]].head())
+print("\nGender — SPD per detector:")
+print(gender_metrics[["detector","SPD","DIR","highest_rate_group"]].to_string(index=False))
+
+print("\n✓ Saved fairness_metrics_race.csv")
+print("✓ Saved fairness_metrics_gender.csv")
+print("✓ Saved group_anomaly_rates_race.csv / _gender.csv")
+print("\nFairness metrics complete.")
