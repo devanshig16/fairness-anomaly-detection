@@ -45,3 +45,50 @@ scores_df      = pd.read_csv(os.path.join(RESULTS_DIR, "anomaly_scores.csv"))
 labels_df      = pd.read_csv(os.path.join(RESULTS_DIR, "anomaly_labels.csv"))
 race_rates     = pd.read_csv(os.path.join(RESULTS_DIR, "group_anomaly_rates_race.csv"))
 gender_rates   = pd.read_csv(os.path.join(RESULTS_DIR, "group_anomaly_rates_gender.csv"))
+race_metrics   = pd.read_csv(os.path.join(RESULTS_DIR, "fairness_metrics_race.csv"))
+gender_metrics = pd.read_csv(os.path.join(RESULTS_DIR, "fairness_metrics_gender.csv"))
+comparison_df  = pd.read_csv(os.path.join(RESULTS_DIR, "fairness_comparison.csv"))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Figure 1: Anomaly flagging rates by race per detector
+# ─────────────────────────────────────────────────────────────────────────────
+fig, axes = plt.subplots(1, 4, figsize=(16, 4), sharey=False)
+fig.suptitle("Figure 1: Anomaly Flagging Rates by Race Group", fontsize=13, fontweight="bold", y=1.02)
+
+for ax, det in zip(axes, DETECTORS):
+    sub = race_rates[race_rates["detector"] == det]
+    sub = sub.set_index("race").reindex(RACE_LABELS).reset_index()
+    bars = ax.bar(range(len(RACE_LABELS)), sub["anomaly_rate"], color=PALETTE_RACE, edgecolor="white", linewidth=0.5)
+    ax.set_title(det, fontweight="bold")
+    ax.set_xticks(range(len(RACE_LABELS)))
+    ax.set_xticklabels(RACE_SHORT, fontsize=8, rotation=30, ha="right")
+    ax.set_ylabel("Anomaly Rate" if det == "IF" else "")
+    ax.set_ylim(0, min(1.0, sub["anomaly_rate"].max() * 1.4 + 0.01))
+    # Annotate bars
+    for bar, rate in zip(bars, sub["anomaly_rate"]):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.002,
+                f"{rate:.3f}", ha="center", va="bottom", fontsize=7)
+
+plt.tight_layout()
+plt.savefig(os.path.join(FIGURES_DIR, "fig1_race_flagging_rates.pdf"), bbox_inches="tight")
+plt.savefig(os.path.join(FIGURES_DIR, "fig1_race_flagging_rates.png"), bbox_inches="tight")
+plt.close()
+print("✓ Figure 1 saved")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Figure 2: Score distributions by race (violin plots)
+# ─────────────────────────────────────────────────────────────────────────────
+fig, axes = plt.subplots(1, 4, figsize=(16, 4), sharey=False)
+fig.suptitle("Figure 2: Anomaly Score Distributions by Race Group", fontsize=13, fontweight="bold", y=1.02)
+
+for ax, det in zip(axes, DETECTORS):
+    plot_data = []
+    for grp in RACE_LABELS:
+        mask = demographics["race"] == grp
+        s = scores_df[det][mask.values].values
+        for val in s:
+            plot_data.append({"Race": grp.replace("AfricanAmerican","African\nAmerican"), "Score": val})
+    plot_df = pd.DataFrame(plot_data)
+    sns.violinplot(data=plot_df, x="Race", y="Score", ax=ax,
