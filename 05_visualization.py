@@ -186,3 +186,46 @@ for ax, stage in zip(axes, ["before", "after"]):
     ax.set_title(stage.capitalize(), fontweight="bold")
     ax.set_ylabel("Anomaly Rate" if stage=="before" else "")
     ax.axhline(np.mean(rates), color="black", linestyle="--", linewidth=1, alpha=0.6, label=f"Mean={np.mean(rates):.3f}")
+    ax.legend(fontsize=8)
+    for bar, v in zip(bars, rates):
+        ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+0.001,
+                f"{v:.3f}", ha="center", va="bottom", fontsize=8)
+    ax.tick_params(axis="x", labelsize=9)
+
+plt.tight_layout()
+plt.savefig(os.path.join(FIGURES_DIR, "fig5_per_group_rates.pdf"), bbox_inches="tight")
+plt.savefig(os.path.join(FIGURES_DIR, "fig5_per_group_rates.png"), bbox_inches="tight")
+plt.close()
+print("✓ Figure 5 saved")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Figure 6: Gender disparity
+# ─────────────────────────────────────────────────────────────────────────────
+fig, ax = plt.subplots(figsize=(7, 4))
+fig.suptitle("Figure 6: Anomaly Flagging Rates by Gender and Detector", fontsize=13, fontweight="bold")
+
+x = np.arange(len(DETECTORS))
+w = 0.35
+colors = {"Female": "#E66101", "Male": "#5E3C99"}
+for i, gender in enumerate(["Female", "Male"]):
+    sub = gender_rates[gender_rates["gender"]==gender].set_index("detector").reindex(DETECTORS)
+    bars = ax.bar(x + i*w, sub["anomaly_rate"], w, label=gender,
+                  color=colors[gender], edgecolor="white")
+    for bar, v in zip(bars, sub["anomaly_rate"]):
+        ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+0.001,
+                f"{v:.3f}", ha="center", va="bottom", fontsize=8)
+
+ax.set_xticks(x + w/2)
+ax.set_xticklabels(DETECTORS)
+ax.set_ylabel("Anomaly Rate")
+ax.legend()
+
+plt.tight_layout()
+plt.savefig(os.path.join(FIGURES_DIR, "fig6_gender_disparity.pdf"), bbox_inches="tight")
+plt.savefig(os.path.join(FIGURES_DIR, "fig6_gender_disparity.png"), bbox_inches="tight")
+plt.close()
+print("✓ Figure 6 saved")
+
+print("\nAll figures saved to figures/")
+print("Visualization complete.")
