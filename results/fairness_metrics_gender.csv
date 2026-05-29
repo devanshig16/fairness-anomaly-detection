@@ -1,0 +1,5 @@
+detector,SPD,DIR,mean_score_gap,mean_JS_divergence,max_anomaly_rate,min_anomaly_rate,highest_rate_group,lowest_rate_group
+IF,0.0079,0.8546,0.0076,0.0273,0.0542,0.0463,Male,Female
+LOF,0.0028,0.9462,0.0,0.0106,0.0515,0.0487,Male,Female
+OCSVM,0.005,0.9051,0.0066,0.0275,0.0527,0.0477,Male,Female
+DBSCAN,0.0036,0.9407,0.0001,0.0102,0.0614,0.0577,Male,Female

@@ -1,0 +1,5 @@
+detector,SPD,DIR,mean_score_gap,mean_JS_divergence,max_anomaly_rate,min_anomaly_rate,highest_rate_group,lowest_rate_group
+IF,0.0322,0.5367,0.0309,0.077,0.0694,0.0373,Hispanic,AfricanAmerican
+LOF,0.0079,0.8464,0.0002,0.0166,0.0514,0.0435,Caucasian,Asian
+OCSVM,0.0179,0.6949,0.0241,0.0788,0.0585,0.0407,Hispanic,AfricanAmerican
+DBSCAN,0.0214,0.6695,0.0007,0.017,0.0647,0.0433,Hispanic,AfricanAmerican
