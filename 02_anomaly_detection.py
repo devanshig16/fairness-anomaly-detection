@@ -90,3 +90,25 @@ knn_distances, _ = knn.kneighbors(X)
 scores["DBSCAN"] = knn_distances[:, -1]   # distance to 5th neighbor
 
 # DBSCAN labels: -1 = noise (anomaly)
+clf_dbscan = DBSCAN(eps=np.percentile(scores["DBSCAN"], 90), min_samples=5, n_jobs=-1)
+dbscan_labels = clf_dbscan.fit_predict(X)
+labels["DBSCAN"] = (dbscan_labels == -1).astype(int)
+print(f"  Done in {time.time()-t:.1f}s  |  Anomalies flagged: {labels['DBSCAN'].sum()}")
+
+# ── Save ──────────────────────────────────────────────────────────────────────
+scores_df = pd.DataFrame(scores)
+labels_df = pd.DataFrame(labels)
+
+# Min-max normalize scores to [0,1] for comparability across detectors
+for col in scores_df.columns:
+    mn, mx = scores_df[col].min(), scores_df[col].max()
+    scores_df[col] = (scores_df[col] - mn) / (mx - mn + 1e-9)
+
+scores_df.to_csv(os.path.join(RESULTS_DIR, "anomaly_scores.csv"), index=False)
+labels_df.to_csv(os.path.join(RESULTS_DIR, "anomaly_labels.csv"), index=False)
+
+print("\n✓ Saved anomaly_scores.csv")
+print("✓ Saved anomaly_labels.csv")
+print("\nSummary:")
+print(labels_df.sum().to_string())
+print("\nAnomaly detection complete.")
