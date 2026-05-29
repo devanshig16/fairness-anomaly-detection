@@ -27,3 +27,32 @@ RESULTS_DIR = "results"
 # ── Load ──────────────────────────────────────────────────────────────────────
 print("Loading results...")
 demographics = pd.read_csv(os.path.join(RESULTS_DIR, "demographics.csv"))
+scores_df    = pd.read_csv(os.path.join(RESULTS_DIR, "anomaly_scores.csv"))
+labels_df    = pd.read_csv(os.path.join(RESULTS_DIR, "anomaly_labels.csv"))
+
+detectors = scores_df.columns.tolist()
+print(f"  Detectors: {detectors}")
+print(f"  N = {len(demographics)}")
+
+# ── Helper: KL divergence between two score distributions ─────────────────────
+def kl_divergence(scores_a, scores_b, bins=50):
+    """Jensen-Shannon divergence (symmetric, bounded [0,1]) between two score arrays."""
+    hist_range = (0, 1)
+    p, _ = np.histogram(scores_a, bins=bins, range=hist_range, density=True)
+    q, _ = np.histogram(scores_b, bins=bins, range=hist_range, density=True)
+    p = p + 1e-10
+    q = q + 1e-10
+    p /= p.sum()
+    q /= q.sum()
+    return float(jensenshannon(p, q))
+
+
+def compute_fairness(group_col, group_values, detectors, demographics, scores_df, labels_df):
+    """Compute all fairness metrics for a given demographic axis."""
+    results = []
+    rate_records = []
+
+    for detector in detectors:
+        scores = scores_df[detector].values
+        labels = labels_df[detector].values
+
