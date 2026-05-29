@@ -56,3 +56,32 @@ def compute_fairness(group_col, group_values, detectors, demographics, scores_df
         scores = scores_df[detector].values
         labels = labels_df[detector].values
 
+        group_rates  = {}
+        group_means  = {}
+        group_scores = {}
+
+        for grp in group_values:
+            mask = (demographics[group_col] == grp).values
+            if mask.sum() == 0:
+                continue
+            rate = labels[mask].mean()
+            mean_score = scores[mask].mean()
+            group_rates[grp]  = rate
+            group_means[grp]  = mean_score
+            group_scores[grp] = scores[mask]
+
+            rate_records.append({
+                "detector":    detector,
+                group_col:     grp,
+                "n":           mask.sum(),
+                "anomaly_rate": rate,
+                "mean_score":  mean_score
+            })
+
+        if len(group_rates) < 2:
+            continue
+
+        rates = list(group_rates.values())
+        means = list(group_means.values())
+
+        spd = max(rates) - min(rates)
