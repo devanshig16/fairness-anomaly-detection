@@ -62,3 +62,35 @@ class FairnessWrapper:
         """Return debiased anomaly scores."""
         debiased = np.zeros_like(scores, dtype=float)
 
+        if self.strategy == "zscore":
+            for grp, stats in self.group_stats_.items():
+                mask = groups == grp
+                debiased[mask] = (scores[mask] - stats["mean"]) / stats["std"]
+
+        elif self.strategy == "quantile":
+            # Rank-normalize within group to [0,1], then concatenate
+            for grp, stats in self.group_stats_.items():
+                mask = groups == grp
+                s = scores[mask]
+                ranks = s.argsort().argsort()
+                debiased[mask] = ranks / (mask.sum() - 1 + 1e-9)
+
+        return debiased
+
+    def fit_transform(self, scores, groups):
+        return self.fit(scores, groups).transform(scores, groups)
+
+    def predict(self, debiased_scores: np.ndarray) -> np.ndarray:
+        """Threshold debiased scores to produce binary labels."""
+        threshold = np.percentile(debiased_scores, 100 * (1 - self.contamination))
+        return (debiased_scores >= threshold).astype(int)
+
+
+# ── Load ──────────────────────────────────────────────────────────────────────
+print("Loading data...")
+demographics = pd.read_csv(os.path.join(RESULTS_DIR, "demographics.csv"))
+scores_df    = pd.read_csv(os.path.join(RESULTS_DIR, "anomaly_scores.csv"))
+labels_df    = pd.read_csv(os.path.join(RESULTS_DIR, "anomaly_labels.csv"))
+
+race_groups   = demographics["race"].values
+gender_groups = demographics["gender"].values
