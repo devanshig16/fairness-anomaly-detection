@@ -139,3 +139,50 @@ print("✓ Figure 3 saved")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Figure 4: SPD before vs after debiasing
+# ─────────────────────────────────────────────────────────────────────────────
+fig, ax = plt.subplots(figsize=(8, 4))
+fig.suptitle("Figure 4: SPD Before vs After FairnessWrapper Debiasing", fontsize=13, fontweight="bold")
+
+x = np.arange(len(DETECTORS))
+w = 0.35
+for i, stage in enumerate(["before", "after"]):
+    sub = comparison_df[comparison_df["stage"] == stage].set_index("detector").reindex(DETECTORS)
+    bars = ax.bar(x + i*w, sub["SPD"], w, label=stage.capitalize(),
+                  color=PALETTE_STAGE[stage], edgecolor="white")
+    for bar, v in zip(bars, sub["SPD"]):
+        ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+0.001,
+                f"{v:.3f}", ha="center", va="bottom", fontsize=8)
+
+ax.set_xticks(x + w/2)
+ax.set_xticklabels(DETECTORS)
+ax.set_ylabel("Statistical Parity Difference (SPD)")
+ax.legend()
+ax.set_ylim(0, comparison_df["SPD"].max() * 1.3)
+
+plt.tight_layout()
+plt.savefig(os.path.join(FIGURES_DIR, "fig4_debiasing_spd.pdf"), bbox_inches="tight")
+plt.savefig(os.path.join(FIGURES_DIR, "fig4_debiasing_spd.png"), bbox_inches="tight")
+plt.close()
+print("✓ Figure 4 saved")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Figure 5: Per-group rates before vs after (for best-case detector)
+# ─────────────────────────────────────────────────────────────────────────────
+# Pick detector with highest SPD before debiasing
+worst_det = comparison_df[comparison_df["stage"]=="before"].sort_values("SPD", ascending=False).iloc[0]["detector"]
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharey=True)
+fig.suptitle(f"Figure 5: Per-Group Anomaly Rates Before vs After Debiasing ({worst_det})",
+             fontsize=13, fontweight="bold")
+
+for ax, stage in zip(axes, ["before", "after"]):
+    sub = comparison_df[(comparison_df["detector"]==worst_det) & (comparison_df["stage"]==stage)].iloc[0]
+    rate_cols = [c for c in comparison_df.columns if c.startswith("rate_")]
+    groups = [c.replace("rate_","") for c in rate_cols]
+    rates  = [sub[c] for c in rate_cols]
+    short  = [g.replace("AfricanAmerican","African\nAmerican") for g in groups]
+    bars = ax.bar(short, rates, color=PALETTE_RACE[:len(groups)], edgecolor="white")
+    ax.set_title(stage.capitalize(), fontweight="bold")
+    ax.set_ylabel("Anomaly Rate" if stage=="before" else "")
+    ax.axhline(np.mean(rates), color="black", linestyle="--", linewidth=1, alpha=0.6, label=f"Mean={np.mean(rates):.3f}")
