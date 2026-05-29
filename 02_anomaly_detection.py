@@ -21,3 +21,26 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import OneClassSVM
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
+import os, time
+
+RESULTS_DIR = "results"
+CONTAMINATION = 0.05   # assume 5% anomaly rate — standard for medical datasets
+RANDOM_STATE  = 42
+
+print("Loading preprocessed features...")
+X = pd.read_csv(os.path.join(RESULTS_DIR, "processed_features.csv")).values
+print(f"  Shape: {X.shape}")
+
+scores = {}
+labels = {}
+
+# ── 1. Isolation Forest ───────────────────────────────────────────────────────
+print("\n[1/4] Isolation Forest...")
+t = time.time()
+clf_if = IsolationForest(
+    n_estimators=200,
+    contamination=CONTAMINATION,
+    random_state=RANDOM_STATE,
+    n_jobs=-1
+)
+clf_if.fit(X)
