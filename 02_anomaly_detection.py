@@ -44,3 +44,26 @@ clf_if = IsolationForest(
     n_jobs=-1
 )
 clf_if.fit(X)
+# score_samples returns negative anomaly scores; negate so higher = more anomalous
+scores["IF"] = -clf_if.score_samples(X)
+labels["IF"] = (clf_if.predict(X) == -1).astype(int)
+print(f"  Done in {time.time()-t:.1f}s  |  Anomalies flagged: {labels['IF'].sum()}")
+
+# ── 2. Local Outlier Factor ───────────────────────────────────────────────────
+print("\n[2/4] Local Outlier Factor...")
+t = time.time()
+clf_lof = LocalOutlierFactor(
+    n_neighbors=20,
+    contamination=CONTAMINATION,
+    n_jobs=-1
+)
+lof_labels = clf_lof.fit_predict(X)
+# negative_outlier_factor_: more negative = more outlying; negate for consistency
+scores["LOF"] = -clf_lof.negative_outlier_factor_
+labels["LOF"] = (lof_labels == -1).astype(int)
+print(f"  Done in {time.time()-t:.1f}s  |  Anomalies flagged: {labels['LOF'].sum()}")
+
+# ── 3. One-Class SVM ─────────────────────────────────────────────────────────
+print("\n[3/4] One-Class SVM (subsampled for speed)...")
+t = time.time()
+# OCSVM is O(n^2); subsample for training, score all
