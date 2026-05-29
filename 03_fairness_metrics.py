@@ -85,3 +85,32 @@ def compute_fairness(group_col, group_values, detectors, demographics, scores_df
         means = list(group_means.values())
 
         spd = max(rates) - min(rates)
+        dir_ratio = min(rates) / (max(rates) + 1e-9)
+        score_gap = max(means) - min(means)
+
+        # KL vs majority group (Caucasian for race, Female for gender)
+        majority = group_values[0]
+        kl_divs = []
+        for grp in group_values[1:]:
+            if grp in group_scores and majority in group_scores:
+                kl_divs.append(kl_divergence(group_scores[majority], group_scores[grp]))
+        mean_kl = np.mean(kl_divs) if kl_divs else 0.0
+
+        results.append({
+            "detector":             detector,
+            "SPD":                  round(spd, 4),
+            "DIR":                  round(dir_ratio, 4),
+            "mean_score_gap":       round(score_gap, 4),
+            "mean_JS_divergence":   round(mean_kl, 4),
+            "max_anomaly_rate":     round(max(rates), 4),
+            "min_anomaly_rate":     round(min(rates), 4),
+            "highest_rate_group":   max(group_rates, key=group_rates.get),
+            "lowest_rate_group":    min(group_rates, key=group_rates.get),
+        })
+
+    return pd.DataFrame(results), pd.DataFrame(rate_records)
+
+
+# ── Race analysis ─────────────────────────────────────────────────────────────
+print("\n── Race Fairness Analysis ──")
+race_groups = ["Caucasian", "AfricanAmerican", "Hispanic", "Asian", "Other"]
