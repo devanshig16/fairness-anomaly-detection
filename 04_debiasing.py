@@ -126,3 +126,35 @@ comparison = []
 for det in detectors:
     for label_df, tag in [(labels_df, "before"), (debiased_labels_df, "after")]:
         rates = {}
+        for grp in race_values:
+            mask = demographics["race"] == grp
+            if mask.sum() == 0:
+                continue
+            rates[grp] = label_df[det][mask].mean()
+        spd = max(rates.values()) - min(rates.values())
+        dir_r = min(rates.values()) / (max(rates.values()) + 1e-9)
+        comparison.append({
+            "detector": det,
+            "stage":    tag,
+            "SPD":      round(spd, 4),
+            "DIR":      round(dir_r, 4),
+            **{f"rate_{k}": round(v, 4) for k, v in rates.items()}
+        })
+
+comparison_df = pd.DataFrame(comparison)
+comparison_df.to_csv(os.path.join(RESULTS_DIR, "fairness_comparison.csv"), index=False)
+
+# Pretty print
+print("\nSPD (Statistical Parity Difference) — lower is fairer:")
+pivot = comparison_df.pivot(index="detector", columns="stage", values="SPD")
+pivot["reduction_%"] = ((pivot["before"] - pivot["after"]) / (pivot["before"] + 1e-9) * 100).round(1)
+print(pivot.to_string())
+
+print("\nDIR (Disparate Impact Ratio) — closer to 1.0 is fairer:")
+pivot2 = comparison_df.pivot(index="detector", columns="stage", values="DIR")
+print(pivot2.to_string())
+
+print("\n✓ Saved debiased_scores.csv")
+print("✓ Saved debiased_labels.csv")
+print("✓ Saved fairness_comparison.csv")
+print("\nDebiasing complete.")
