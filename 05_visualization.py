@@ -92,3 +92,50 @@ for ax, det in zip(axes, DETECTORS):
             plot_data.append({"Race": grp.replace("AfricanAmerican","African\nAmerican"), "Score": val})
     plot_df = pd.DataFrame(plot_data)
     sns.violinplot(data=plot_df, x="Race", y="Score", ax=ax,
+                   palette=PALETTE_RACE, inner="quartile", linewidth=0.8, cut=0)
+    ax.set_title(det, fontweight="bold")
+    ax.set_xlabel("")
+    ax.set_ylabel("Anomaly Score (normalized)" if det == "IF" else "")
+    ax.tick_params(axis="x", labelsize=8, rotation=30)
+
+plt.tight_layout()
+plt.savefig(os.path.join(FIGURES_DIR, "fig2_score_distributions.pdf"), bbox_inches="tight")
+plt.savefig(os.path.join(FIGURES_DIR, "fig2_score_distributions.png"), bbox_inches="tight")
+plt.close()
+print("✓ Figure 2 saved")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Figure 3: Fairness metrics heatmap
+# ─────────────────────────────────────────────────────────────────────────────
+fig, axes = plt.subplots(1, 3, figsize=(13, 3.5))
+fig.suptitle("Figure 3: Fairness Metrics Across Detectors (Race Axis)", fontsize=13, fontweight="bold")
+
+metrics_to_plot = [
+    ("SPD",                "Statistical Parity Difference\n(lower = fairer)"),
+    ("DIR",                "Disparate Impact Ratio\n(closer to 1 = fairer)"),
+    ("mean_JS_divergence", "Mean JS Divergence\n(lower = fairer)"),
+]
+
+for ax, (metric, title) in zip(axes, metrics_to_plot):
+    vals = race_metrics.set_index("detector")[metric].reindex(DETECTORS).values.reshape(-1, 1)
+    im = ax.imshow(vals, cmap="RdYlGn_r" if metric != "DIR" else "RdYlGn",
+                   aspect="auto", vmin=0, vmax=vals.max()*1.1)
+    ax.set_xticks([])
+    ax.set_yticks(range(len(DETECTORS)))
+    ax.set_yticklabels(DETECTORS, fontsize=11)
+    ax.set_title(title, fontsize=9)
+    plt.colorbar(im, ax=ax, fraction=0.05)
+    for i, v in enumerate(vals.flatten()):
+        ax.text(0, i, f"{v:.3f}", ha="center", va="center", fontsize=11,
+                color="white" if v > vals.max()*0.6 else "black", fontweight="bold")
+
+plt.tight_layout()
+plt.savefig(os.path.join(FIGURES_DIR, "fig3_fairness_heatmap.pdf"), bbox_inches="tight")
+plt.savefig(os.path.join(FIGURES_DIR, "fig3_fairness_heatmap.png"), bbox_inches="tight")
+plt.close()
+print("✓ Figure 3 saved")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Figure 4: SPD before vs after debiasing
